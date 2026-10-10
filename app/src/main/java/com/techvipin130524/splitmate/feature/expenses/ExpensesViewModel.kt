@@ -1,0 +1,225 @@
+package com.techvipin130524.splitmate.feature.expenses
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.techvipin130524.splitmate.core.utils.CurrencyUtils
+import com.techvipin130524.splitmate.domain.model.Expense
+import com.techvipin130524.splitmate.domain.model.ExpenseParticipant
+import com.techvipin130524.splitmate.domain.model.ExpensePayer
+import com.techvipin130524.splitmate.domain.model.Group
+import com.techvipin130524.splitmate.domain.model.SplitType
+import com.techvipin130524.splitmate.domain.repository.ExpenseRepository
+import com.techvipin130524.splitmate.domain.repository.GroupRepository
+import com.techvipin130524.splitmate.domain.usecase.split.SplitCalculator
+import com.techvipin130524.splitmate.feature.auth.domain.AuthRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+data class ExpensesUiState(
+    val currentUserId: String = "",
+    val currentUserName: String = "",
+    val groups: List<Group> = emptyList(),
+    val selectedGroup: Group? = null,
+    val description: String = "",
+    val totalAmountString: String = "",
+    val selectedPayerId: String = "",
+    val splitType: SplitType = SplitType.EQUAL,
+    val selectedParticipantIds: Set<String> = emptySet(),
+    val exactAmounts: Map<String, String> = emptyMap(),
+    val percentages: Map<String, String> = emptyMap(),
+    val shares: Map<String, String> = emptyMap(),
+    val isSaving: Boolean = false,
+    val selectedExpense: Expense? = null,
+    val error: String? = null,
+    val message: String? = null
+)
+
+@HiltViewModel
+class ExpensesViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+    private val groupRepository: GroupRepository,
+    private val expenseRepository: ExpenseRepository
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(ExpensesUiState())
+    val uiState: StateFlow<ExpensesUiState> = _uiState.asStateFlow()
+
+    init {
+        loadInitialData()
+    }
+
+    private fun loadInitialData() {
+        viewModelScope.launch {
+            authRepository.authState.collectLatest { authUser ->
+                if (authUser != null) {
+                    _uiState.value = _uiState.value.copy(
+                        currentUserId = authUser.uid,
+                        currentUserName = authUser.name ?: "User",
+                        selectedPayerId = authUser.uid
+                    )
+
+                    groupRepository.observeGroups(authUser.uid).collectLatest { groups ->
+                        _uiState.value = _uiState.value.copy(groups = groups)
+                        if (groups.isNotEmpty() && _uiState.value.selectedGroup == null) {
+                            selectGroup(groups.first().id)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun selectGroup(groupId: String) {
+        viewModelScope.launch {
+            groupRepository.getGroupDetails(groupId).onSuccess { group ->
+                val allMemberIds = group.members.map { it.userId }.toSet()
+                _uiState.value = _uiState.value.copy(
+                    selectedGroup = group,
+                    selectedParticipantIds = allMemberIds
+                )
+            }
+        }
+    }
+
+    fun updateDescription(value: String) {
+        _uiState.value = _uiState.value.copy(description = value)
+    }
+
+    fun updateTotalAmount(value: String) {
+        _uiState.value = _uiState.value.copy(totalAmountString = value)
+    }
+
+    fun updatePayer(userId: String) {
+        _uiState.value = _uiState.value.copy(selectedPayerId = userId)
+    }
+
+    fun updateSplitType(type: SplitType) {
+        _uiState.value = _uiState.value.copy(splitType = type)
+    }
+
+    fun toggleParticipant(userId: String) {
+        val current = _uiState.value.selectedParticipantIds.toMutableSet()
+        if (current.contains(userId)) current.remove(userId) else current.add(userId)
+        _uiState.value = _uiState.value.copy(selectedParticipantIds = current)
+    }
+
+    fun updateExactAmount(userId: String, amountString: String) {
+        val updated = _uiState.value.exactAmounts.toMutableMap()
+        updated[userId] = amountString
+        _uiState.value = _uiState.value.copy(exactAmounts = updated)
+    }
+
+    fun updatePercentage(userId: String, pctString: String) {
+        val updated = _uiState.value.percentages.toMutableMap()
+        updated[userId] = pctString
+        _uiState.value = _uiState.value.copy(percentages = updated)
+    }
+
+    fun updateShares(userId: String, sharesString: String) {
+        val updated = _uiState.value.shares.toMutableMap()
+        updated[userId] = sharesString
+        _uiState.value = _uiState.value.copy(shares = updated)
+    }
+
+    fun saveExpense(onSaved: () -> Unit) {
+        val state = _uiState.value
+        val group = state.selectedGroup ?: run {
+            _uiState.value = state.copy(error = "Please select a group")
+            return
+        }
+
+        val totalPaise = CurrencyUtils.parseToPaise(state.totalAmountString)
+        if (totalPaise == null || totalPaise <= 0) {
+            _uiState.value = state.copy(error = "Please enter a valid amount")
+            return
+        }
+
+        if (state.description.isBlank()) {
+            _uiState.value = state.copy(error = "Please enter expense description")
+            return
+        }
+
+        val participantsInfo = group.members
+            .filter { it.userId in state.selectedParticipantIds }
+            .map { it.userId to it.userName }
+
+        if (participantsInfo.isEmpty()) {
+            _uiState.value = state.copy(error = "Please select at least one participant")
+            return
+        }
+
+        val splitResult: Result<List<ExpenseParticipant>> = when (state.splitType) {
+            SplitType.EQUAL -> {
+                Result.success(SplitCalculator.calculateEqualSplit(totalPaise, participantsInfo))
+            }
+            SplitType.EXACT -> {
+                val exactMap = participantsInfo.associate { (id, _) ->
+                    id to (CurrencyUtils.parseToPaise(state.exactAmounts[id] ?: "0") ?: 0L)
+                }
+                SplitCalculator.calculateExactSplit(totalPaise, participantsInfo, exactMap)
+            }
+            SplitType.PERCENTAGE -> {
+                val pctMap = participantsInfo.associate { (id, _) ->
+                    id to (state.percentages[id]?.toDoubleOrNull() ?: 0.0)
+                }
+                SplitCalculator.calculatePercentageSplit(totalPaise, participantsInfo, pctMap)
+            }
+            SplitType.SHARES -> {
+                val sharesMap = participantsInfo.associate { (id, _) ->
+                    id to (state.shares[id]?.toIntOrNull() ?: 1)
+                }
+                SplitCalculator.calculateSharesSplit(totalPaise, participantsInfo, sharesMap)
+            }
+        }
+
+        splitResult.onSuccess { participants ->
+            val payerName = group.members.find { it.userId == state.selectedPayerId }?.userName ?: state.currentUserName
+
+            val expense = Expense(
+                groupId = group.id,
+                description = state.description.trim(),
+                totalAmount = totalPaise,
+                createdBy = state.currentUserId,
+                createdByName = payerName,
+                createdAt = System.currentTimeMillis(),
+                participants = participants,
+                payers = listOf(
+                    ExpensePayer(
+                        userId = state.selectedPayerId,
+                        userName = payerName,
+                        amount = totalPaise
+                    )
+                )
+            )
+
+            viewModelScope.launch {
+                _uiState.value = _uiState.value.copy(isSaving = true, error = null)
+                expenseRepository.addExpense(expense).onSuccess {
+                    _uiState.value = _uiState.value.copy(isSaving = false, message = "Expense saved!")
+                    onSaved()
+                }.onFailure { e ->
+                    _uiState.value = _uiState.value.copy(isSaving = false, error = e.localizedMessage ?: "Failed to save expense")
+                }
+            }
+        }.onFailure { e ->
+            _uiState.value = state.copy(error = e.message ?: "Invalid split configuration")
+        }
+    }
+
+    fun loadExpenseDetails(expenseId: String) {
+        viewModelScope.launch {
+            expenseRepository.getExpenseDetails(expenseId).onSuccess { expense ->
+                _uiState.value = _uiState.value.copy(selectedExpense = expense)
+            }
+        }
+    }
+
+    fun clearMessage() {
+        _uiState.value = _uiState.value.copy(message = null, error = null)
+    }
+}

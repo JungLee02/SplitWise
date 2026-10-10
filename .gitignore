@@ -1,0 +1,23 @@
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Files for the server/IDE
+.idea/
+.gradle/
+.kotlin/
+*.iml
+local.properties
+
+# Generated files
+build/
+app/build/
+captures/
+.externalNativeBuild/
+.cxx/
+.artifacts/
+
+# OS specific files
+.DS_Store
