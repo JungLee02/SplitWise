@@ -7,12 +7,26 @@ enum class SplitType {
     SHARES
 }
 
+enum class ExpenseCategory(val displayName: String, val iconName: String) {
+    FOOD("Food & Drinks", "restaurant"),
+    TRANSPORT("Transport & Cabs", "directions_car"),
+    HOTEL("Hotel & Stay", "hotel"),
+    ENTERTAINMENT("Entertainment", "movie"),
+    GROCERIES("Groceries", "shopping_cart"),
+    RENT("Rent", "home"),
+    BILLS("Bills & Utilities", "receipt"),
+    SHOPPING("Shopping", "shopping_bag"),
+    OTHER("Other", "more_horiz")
+}
+
 data class Expense(
     val id: String = "",
     val groupId: String = "",
     val description: String = "",
     val totalAmount: Long = 0L, // Amount in minor units (paise)
     val currency: String = "INR",
+    val category: ExpenseCategory = ExpenseCategory.OTHER,
+    val receiptImageUrl: String? = null,
     val createdBy: String = "",
     val createdByName: String = "",
     val createdAt: Long = System.currentTimeMillis(),

@@ -19,6 +19,8 @@ import com.techvipin130524.splitmate.domain.model.Settlement
 import com.techvipin130524.splitmate.domain.model.SplitType
 import com.techvipin130524.splitmate.domain.model.User
 
+import com.techvipin130524.splitmate.domain.model.ExpenseCategory
+
 // User Mappers
 fun User.toEntity() = UserEntity(id, name, email, profileImageUrl, createdAt, updatedAt)
 fun UserEntity.toDomain() = User(id, name, email, profileImageUrl, createdAt, updatedAt)
@@ -35,8 +37,8 @@ fun GroupMember.toEntity(groupId: String) = GroupMemberEntity(groupId, userId, u
 fun GroupMemberEntity.toDomain() = GroupMember(groupId, userId, userName, userEmail, role, joinedAt)
 
 // Expense Mappers
-fun Expense.toEntity() = ExpenseEntity(id, groupId, description, totalAmount, currency, createdBy, createdByName, createdAt, updatedAt, isDeleted)
-fun ExpenseEntity.toDomain(participants: List<ExpenseParticipant> = emptyList(), payers: List<ExpensePayer> = emptyList()) = Expense(id, groupId, description, totalAmount, currency, createdBy, createdByName, createdAt, updatedAt, isDeleted, participants, payers)
+fun Expense.toEntity() = ExpenseEntity(id, groupId, description, totalAmount, currency, category.name, receiptImageUrl, createdBy, createdByName, createdAt, updatedAt, isDeleted)
+fun ExpenseEntity.toDomain(participants: List<ExpenseParticipant> = emptyList(), payers: List<ExpensePayer> = emptyList()) = Expense(id, groupId, description, totalAmount, currency, try { ExpenseCategory.valueOf(category) } catch (e: Exception) { ExpenseCategory.OTHER }, receiptImageUrl, createdBy, createdByName, createdAt, updatedAt, isDeleted, participants, payers)
 
 fun ExpenseParticipant.toEntity(expenseId: String) = ExpenseParticipantEntity(if (id.isEmpty()) "${expenseId}_$userId" else id, expenseId, userId, userName, splitType.name, amount, percentage, shares)
 fun ExpenseParticipantEntity.toDomain() = ExpenseParticipant(id, expenseId, userId, userName, try { SplitType.valueOf(splitType) } catch (e: Exception) { SplitType.EQUAL }, amount, percentage, shares)

@@ -129,6 +129,7 @@ fun GroupDetailScreen(
                                     totalAmountPaise = expense.totalAmount,
                                     userSharePaise = userShare,
                                     isPayer = isPayer,
+                                    category = expense.category,
                                     onClick = {},
                                     modifier = Modifier.padding(vertical = 4.dp)
                                 )

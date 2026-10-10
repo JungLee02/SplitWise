@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import com.techvipin130524.splitmate.domain.model.ExpenseCategory
+
 data class ExpensesUiState(
     val currentUserId: String = "",
     val currentUserName: String = "",
@@ -28,6 +30,7 @@ data class ExpensesUiState(
     val description: String = "",
     val totalAmountString: String = "",
     val selectedPayerId: String = "",
+    val category: ExpenseCategory = ExpenseCategory.OTHER,
     val splitType: SplitType = SplitType.EQUAL,
     val selectedParticipantIds: Set<String> = emptySet(),
     val exactAmounts: Map<String, String> = emptyMap(),
@@ -96,6 +99,10 @@ class ExpensesViewModel @Inject constructor(
 
     fun updatePayer(userId: String) {
         _uiState.value = _uiState.value.copy(selectedPayerId = userId)
+    }
+
+    fun updateCategory(category: ExpenseCategory) {
+        _uiState.value = _uiState.value.copy(category = category)
     }
 
     fun updateSplitType(type: SplitType) {
@@ -184,6 +191,7 @@ class ExpensesViewModel @Inject constructor(
                 groupId = group.id,
                 description = state.description.trim(),
                 totalAmount = totalPaise,
+                category = state.category,
                 createdBy = state.currentUserId,
                 createdByName = payerName,
                 createdAt = System.currentTimeMillis(),

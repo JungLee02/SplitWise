@@ -10,6 +10,8 @@ data class ExpenseEntity(
     val description: String,
     val totalAmount: Long,
     val currency: String,
+    val category: String,
+    val receiptImageUrl: String?,
     val createdBy: String,
     val createdByName: String,
     val createdAt: Long,

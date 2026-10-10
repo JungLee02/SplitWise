@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.techvipin130524.splitmate.core.navigation.Routes
 import com.techvipin130524.splitmate.core.utils.CurrencyUtils
+import com.techvipin130524.splitmate.domain.model.ExpenseCategory
 
 sealed class BottomNavItem(val route: String, val title: String, val icon: ImageVector) {
     object Home : BottomNavItem(Routes.HOME, "Home", Icons.Default.Home)
@@ -196,6 +197,7 @@ fun ExpenseRow(
     totalAmountPaise: Long,
     userSharePaise: Long,
     isPayer: Boolean,
+    category: ExpenseCategory = ExpenseCategory.OTHER,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -232,13 +234,28 @@ fun ExpenseRow(
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            text = category.displayName,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
+                    }
+                }
                 Text(
                     text = "Paid by $createdByName • Total ${CurrencyUtils.formatPaise(totalAmountPaise)}",
                     style = MaterialTheme.typography.bodySmall,

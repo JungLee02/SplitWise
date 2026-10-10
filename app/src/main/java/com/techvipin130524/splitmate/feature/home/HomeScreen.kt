@@ -130,6 +130,7 @@ fun HomeScreen(
                             totalAmountPaise = expense.totalAmount,
                             userSharePaise = myShare,
                             isPayer = isPayer,
+                            category = expense.category,
                             onClick = {},
                             modifier = Modifier.padding(vertical = 4.dp)
                         )
