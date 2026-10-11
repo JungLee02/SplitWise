@@ -6,6 +6,9 @@ import com.techvipin130524.splitmate.core.utils.CurrencyUtils
 import com.techvipin130524.splitmate.domain.model.Group
 import com.techvipin130524.splitmate.domain.model.Settlement
 import com.techvipin130524.splitmate.domain.repository.GroupRepository
+import com.techvipin130524.splitmate.domain.model.ActivityLog
+import com.techvipin130524.splitmate.domain.model.ActivityType
+import com.techvipin130524.splitmate.domain.repository.ActivityLogRepository
 import com.techvipin130524.splitmate.domain.repository.SettlementRepository
 import com.techvipin130524.splitmate.feature.auth.domain.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,7 +36,8 @@ data class SettlementUiState(
 class SettlementViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val groupRepository: GroupRepository,
-    private val settlementRepository: SettlementRepository
+    private val settlementRepository: SettlementRepository,
+    private val activityLogRepository: ActivityLogRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettlementUiState())
@@ -117,6 +121,15 @@ class SettlementViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true, error = null)
             settlementRepository.recordSettlement(settlement).onSuccess {
+                activityLogRepository.logActivity(
+                    ActivityLog(
+                        groupId = group.id,
+                        groupName = group.name,
+                        title = "$fromUserName paid $toUserName",
+                        description = "Settled ${CurrencyUtils.formatPaise(amountPaise)} ${if (state.note.isNotBlank()) "(${state.note})" else ""}",
+                        type = ActivityType.SETTLEMENT_RECORDED
+                    )
+                )
                 _uiState.value = _uiState.value.copy(isSaving = false, message = "Settlement recorded!")
                 onSettled()
             }.onFailure { e ->

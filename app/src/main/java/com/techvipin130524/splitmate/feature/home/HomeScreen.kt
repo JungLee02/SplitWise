@@ -32,7 +32,17 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Badge
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.techvipin130524.splitmate.core.designsystem.component.BalanceCard
 import com.techvipin130524.splitmate.core.designsystem.component.CategoryAnalyticsCard
 import com.techvipin130524.splitmate.core.designsystem.component.ExpenseRow
@@ -49,6 +59,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showNotificationsDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -62,6 +73,17 @@ fun HomeScreen(
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showNotificationsDialog = true }) {
+                        if (uiState.activityLogs.isNotEmpty()) {
+                            BadgedBox(badge = { Badge { Text("${uiState.activityLogs.size}") } }) {
+                                Icon(Icons.Default.Notifications, contentDescription = "Activity Feed")
+                            }
+                        } else {
+                            Icon(Icons.Default.Notifications, contentDescription = "Activity Feed")
+                        }
                     }
                 }
             )
@@ -179,5 +201,46 @@ fun HomeScreen(
                 }
             }
         }
+    }
+
+    if (showNotificationsDialog) {
+        AlertDialog(
+            onDismissRequest = { showNotificationsDialog = false },
+            title = { Text("Activity Feed & Updates") },
+            text = {
+                if (uiState.activityLogs.isEmpty()) {
+                    Text("No recent activity yet.")
+                } else {
+                    LazyColumn(modifier = Modifier.height(300.dp)) {
+                        items(uiState.activityLogs, key = { it.id }) { log ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = log.title,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = log.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = { showNotificationsDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
     }
 }

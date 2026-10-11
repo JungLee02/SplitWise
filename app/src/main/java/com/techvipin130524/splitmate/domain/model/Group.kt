@@ -5,6 +5,7 @@ data class Group(
     val name: String = "",
     val description: String = "",
     val imageUrl: String? = null,
+    val inviteCode: String = "",
     val createdBy: String = "",
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),

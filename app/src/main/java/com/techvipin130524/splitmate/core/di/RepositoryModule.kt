@@ -1,10 +1,12 @@
 package com.techvipin130524.splitmate.core.di
 
+import com.techvipin130524.splitmate.data.repository.ActivityLogRepositoryImpl
 import com.techvipin130524.splitmate.data.repository.ExpenseRepositoryImpl
 import com.techvipin130524.splitmate.data.repository.FriendRepositoryImpl
 import com.techvipin130524.splitmate.data.repository.GroupRepositoryImpl
 import com.techvipin130524.splitmate.data.repository.SettlementRepositoryImpl
 import com.techvipin130524.splitmate.data.repository.UserRepositoryImpl
+import com.techvipin130524.splitmate.domain.repository.ActivityLogRepository
 import com.techvipin130524.splitmate.domain.repository.ExpenseRepository
 import com.techvipin130524.splitmate.domain.repository.FriendRepository
 import com.techvipin130524.splitmate.domain.repository.GroupRepository
@@ -57,4 +59,10 @@ abstract class RepositoryModule {
     abstract fun bindSettlementRepository(
         settlementRepositoryImpl: SettlementRepositoryImpl,
     ): SettlementRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindActivityLogRepository(
+        activityLogRepositoryImpl: ActivityLogRepositoryImpl,
+    ): ActivityLogRepository
 }

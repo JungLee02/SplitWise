@@ -20,7 +20,10 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import com.techvipin130524.splitmate.domain.model.ActivityLog
+import com.techvipin130524.splitmate.domain.model.ActivityType
 import com.techvipin130524.splitmate.domain.model.ExpenseCategory
+import com.techvipin130524.splitmate.domain.repository.ActivityLogRepository
 
 data class ExpensesUiState(
     val currentUserId: String = "",
@@ -47,7 +50,8 @@ data class ExpensesUiState(
 class ExpensesViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val groupRepository: GroupRepository,
-    private val expenseRepository: ExpenseRepository
+    private val expenseRepository: ExpenseRepository,
+    private val activityLogRepository: ActivityLogRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ExpensesUiState())
@@ -214,6 +218,15 @@ class ExpensesViewModel @Inject constructor(
             viewModelScope.launch {
                 _uiState.value = _uiState.value.copy(isSaving = true, error = null)
                 expenseRepository.addExpense(expense).onSuccess {
+                    activityLogRepository.logActivity(
+                        ActivityLog(
+                            groupId = group.id,
+                            groupName = group.name,
+                            title = "Added '${expense.description}'",
+                            description = "Total ${CurrencyUtils.formatPaise(totalPaise)} paid by $payerName",
+                            type = ActivityType.EXPENSE_ADDED
+                        )
+                    )
                     _uiState.value = _uiState.value.copy(isSaving = false, message = "Expense saved!")
                     onSaved()
                 }.onFailure { e ->

@@ -9,6 +9,7 @@ data class GroupEntity(
     val name: String,
     val description: String,
     val imageUrl: String?,
+    val inviteCode: String,
     val createdBy: String,
     val createdAt: Long,
     val updatedAt: Long

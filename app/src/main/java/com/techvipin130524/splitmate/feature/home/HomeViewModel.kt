@@ -17,7 +17,9 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import com.techvipin130524.splitmate.domain.model.ActivityLog
 import com.techvipin130524.splitmate.domain.model.ExpenseCategory
+import com.techvipin130524.splitmate.domain.repository.ActivityLogRepository
 
 data class HomeUiState(
     val currentUserId: String = "",
@@ -29,6 +31,7 @@ data class HomeUiState(
     val searchQuery: String = "",
     val categorySpendMap: Map<ExpenseCategory, Long> = emptyMap(),
     val totalSpendPaise: Long = 0L,
+    val activityLogs: List<ActivityLog> = emptyList(),
     val groups: List<Group> = emptyList(),
     val isLoading: Boolean = true
 )
@@ -38,7 +41,8 @@ class HomeViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val expenseRepository: ExpenseRepository,
     private val settlementRepository: SettlementRepository,
-    private val groupRepository: GroupRepository
+    private val groupRepository: GroupRepository,
+    private val activityLogRepository: ActivityLogRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -71,6 +75,12 @@ class HomeViewModel @Inject constructor(
                     launch {
                         groupRepository.observeGroups(uid).collectLatest { groups ->
                             _uiState.value = _uiState.value.copy(groups = groups, isLoading = false)
+                        }
+                    }
+
+                    launch {
+                        activityLogRepository.observeAllActivityLogs().collectLatest { logs ->
+                            _uiState.value = _uiState.value.copy(activityLogs = logs)
                         }
                     }
                 }

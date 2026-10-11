@@ -1,6 +1,9 @@
 package com.techvipin130524.splitmate.feature.groups
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -66,6 +69,8 @@ fun GroupDetailScreen(
 
     val group = uiState.selectedGroup
 
+    val context = LocalContext.current
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -73,6 +78,33 @@ fun GroupDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            val report = buildString {
+                                appendLine("📊 ${group?.name ?: "Group"} Expense Report")
+                                appendLine("Members: ${group?.members?.size ?: 0}")
+                                appendLine("------------------------------")
+                                appendLine("Outstanding Balances:")
+                                if (uiState.groupSimplifiedDebts.isEmpty()) {
+                                    appendLine("All settled up!")
+                                } else {
+                                    uiState.groupSimplifiedDebts.forEach { debt ->
+                                        appendLine("• ${debt.fromUserName} owes ${debt.toUserName}: ${CurrencyUtils.formatPaise(debt.amount)}")
+                                    }
+                                }
+                            }
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_SUBJECT, "${group?.name} Expense Report")
+                                putExtra(Intent.EXTRA_TEXT, report)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Share Expense Report"))
+                        }
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = "Share Report")
                     }
                 }
             )
