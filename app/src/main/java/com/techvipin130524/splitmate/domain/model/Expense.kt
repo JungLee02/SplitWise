@@ -26,6 +26,7 @@ data class Expense(
     val totalAmount: Long = 0L, // Amount in minor units (paise)
     val currency: String = "INR",
     val category: ExpenseCategory = ExpenseCategory.OTHER,
+    val note: String = "",
     val receiptImageUrl: String? = null,
     val createdBy: String = "",
     val createdByName: String = "",

@@ -151,6 +151,16 @@ fun AddExpenseScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            OutlinedTextField(
+                value = uiState.note,
+                onValueChange = viewModel::updateNote,
+                label = { Text("Note / Comment (Optional)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             // Category Dropdown
             ExposedDropdownMenuBox(
                 expanded = categoryDropdownExpanded,

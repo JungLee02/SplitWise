@@ -27,7 +27,7 @@ import com.techvipin130524.splitmate.data.local.entity.UserEntity
         ExpensePayerEntity::class,
         SettlementEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class SplitMateDatabase : RoomDatabase() {

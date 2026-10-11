@@ -17,12 +17,18 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import com.techvipin130524.splitmate.domain.model.ExpenseCategory
+
 data class HomeUiState(
     val currentUserId: String = "",
     val currentUserName: String = "",
     val youOwePaise: Long = 0L,
     val youAreOwedPaise: Long = 0L,
     val recentExpenses: List<Expense> = emptyList(),
+    val filteredExpenses: List<Expense> = emptyList(),
+    val searchQuery: String = "",
+    val categorySpendMap: Map<ExpenseCategory, Long> = emptyMap(),
+    val totalSpendPaise: Long = 0L,
     val groups: List<Group> = emptyList(),
     val isLoading: Boolean = true
 )
@@ -55,8 +61,10 @@ class HomeViewModel @Inject constructor(
 
                     launch {
                         expenseRepository.observeAllExpenses().collectLatest { expenses ->
-                            _uiState.value = _uiState.value.copy(recentExpenses = expenses.take(5))
+                            _uiState.value = _uiState.value.copy(recentExpenses = expenses.take(10))
                             calculateOverallBalance(uid, expenses)
+                            calculateCategoryAnalytics(expenses)
+                            applyFilter()
                         }
                     }
 
@@ -68,6 +76,43 @@ class HomeViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun updateSearchQuery(query: String) {
+        _uiState.value = _uiState.value.copy(searchQuery = query)
+        applyFilter()
+    }
+
+    private fun applyFilter() {
+        val query = _uiState.value.searchQuery.trim().lowercase()
+        val all = _uiState.value.recentExpenses
+        val filtered = if (query.isEmpty()) {
+            all
+        } else {
+            all.filter {
+                it.description.lowercase().contains(query) ||
+                        it.category.displayName.lowercase().contains(query) ||
+                        it.createdByName.lowercase().contains(query)
+            }
+        }
+        _uiState.value = _uiState.value.copy(filteredExpenses = filtered)
+    }
+
+    private fun calculateCategoryAnalytics(expenses: List<Expense>) {
+        val categoryMap = mutableMapOf<ExpenseCategory, Long>()
+        var total = 0L
+
+        for (expense in expenses) {
+            if (expense.isDeleted) continue
+            val current = categoryMap[expense.category] ?: 0L
+            categoryMap[expense.category] = current + expense.totalAmount
+            total += expense.totalAmount
+        }
+
+        _uiState.value = _uiState.value.copy(
+            categorySpendMap = categoryMap,
+            totalSpendPaise = total
+        )
     }
 
     private fun calculateOverallBalance(uid: String, expenses: List<Expense>) {

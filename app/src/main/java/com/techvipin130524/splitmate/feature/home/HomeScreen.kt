@@ -31,7 +31,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.OutlinedTextField
 import com.techvipin130524.splitmate.core.designsystem.component.BalanceCard
+import com.techvipin130524.splitmate.core.designsystem.component.CategoryAnalyticsCard
 import com.techvipin130524.splitmate.core.designsystem.component.ExpenseRow
 import com.techvipin130524.splitmate.core.designsystem.component.GroupCard
 import com.techvipin130524.splitmate.core.designsystem.component.LoadingState
@@ -85,6 +88,13 @@ fun HomeScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        CategoryAnalyticsCard(
+                            categorySpendMap = uiState.categorySpendMap,
+                            totalSpendPaise = uiState.totalSpendPaise
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -108,9 +118,20 @@ fun HomeScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(20.dp))
 
-                        if (uiState.recentExpenses.isNotEmpty()) {
+                        OutlinedTextField(
+                            value = uiState.searchQuery,
+                            onValueChange = viewModel::updateSearchQuery,
+                            label = { Text("Search expenses...") },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        if (uiState.filteredExpenses.isNotEmpty()) {
                             Text(
                                 text = "Recent Expenses",
                                 style = MaterialTheme.typography.titleMedium,
@@ -120,7 +141,7 @@ fun HomeScreen(
                         }
                     }
 
-                    items(uiState.recentExpenses, key = { it.id }) { expense ->
+                    items(uiState.filteredExpenses, key = { it.id }) { expense ->
                         val myShare = expense.participants.find { it.userId == uiState.currentUserId }?.amount ?: 0L
                         val isPayer = expense.createdBy == uiState.currentUserId || expense.payers.any { it.userId == uiState.currentUserId }
 
